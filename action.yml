@@ -34,6 +34,13 @@ inputs:
     description: "Use github actions/cache as fallback"
     required: false
     default: "true"
+  saveOnFailure:
+    description: "Whether to save cache on failure (default: false). When setting to true, githubToken must be specified"
+    required: false
+    default: "false"
+  githubToken:
+    description: "Github token used to check job status. Required only when setting saveOnFailure=true"
+    required: false
   # zip-option:
   #   description: zip options
   #   required: false
@@ -49,7 +56,7 @@ runs:
   using: node12
   main: "dist/restore/index.js"
   post: "dist/save/index.js"
-  post-if: "success()"
+  post-if: always()
 branding:
   icon: "archive"
   color: "gray-dark"
