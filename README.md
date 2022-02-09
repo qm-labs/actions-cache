@@ -28,6 +28,8 @@ jobs:
           secretKey: "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG" # required
           bucket: actions-cache # required
           use-fallback: true # optional, use github actions cache fallback, default true
+          saveOnFailure: false # optional, whether to save cache on job failure. default false. If true, must specify githubToken
+          githubToken: ${{ secrets.GITHUB_TOKEN }} # used to check job status if saveOnFailure=true
 
           # actions/cache compatible properties: https://github.com/actions/cache
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}

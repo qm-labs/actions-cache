@@ -140,3 +140,123 @@ jobs:
       - name: Verify cache files outside working directory
         shell: bash
         run: src/verify-cache-files.sh ${{ runner.os }} ~/test-cache
+
+  test-saveOnFailure-default-failed-setup:
+    name: Setup failed job for when saveOnFailure is not specified (this job should always fail)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Restore cache
+        uses: ./
+        with:
+          endpoint: play.min.io
+          accessKey: "Q3AM3UQ867SPQQA43P2F"
+          secretKey: "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
+          bucket: actions-cache
+          use-fallback: false
+          key: test-saveOnFailure-default-failed-${{ github.run_id }}-${{ github.sha }}
+          path: |
+            test-save-input
+          restore-keys: test-saveOnFailure-default-failed-${{ github.run_id }}-${{ github.sha }}
+      - name: Populate cached file locally, then fail
+        shell: bash
+        run: |
+          echo ${{ github.run_id }}-${{ github.run_attempt }} > test-save-input
+          exit 1
+
+  test-saveOnFailure-default-failed-assert:
+    name: Assert cache was not saved when saveOnFailure is not specified and job failed
+    needs: test-saveOnFailure-default-failed-setup
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Restore cache
+        uses: ./
+        with:
+          endpoint: play.min.io
+          accessKey: "Q3AM3UQ867SPQQA43P2F"
+          secretKey: "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
+          bucket: actions-cache
+          use-fallback: false
+          key: test-saveOnFailure-default-failed-${{ github.run_id }}-${{ github.sha }}
+          path: |
+            test-save-input
+          restore-keys: test-saveOnFailure-default-failed-${{ github.run_id }}-${{ github.sha }}
+      - name: Assert cache was not saved in setup job
+        shell: bash
+        run: |
+          if [ -f test-save-input ]; then
+            echo 'File "test-save-input" should not exist, test failed!'
+            exit 1
+          fi
+
+  test-saveOnFailure-true-setup:
+    name: Setup failed job for when saveOnFailure=true (this job should always fail)
+    runs-on: ubuntu-latest
+    outputs:
+      cachedContents: ${{ steps.populate-cache-then-fail.outputs.cachedContents }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Restore cache
+        uses: ./
+        with:
+          endpoint: play.min.io
+          accessKey: "Q3AM3UQ867SPQQA43P2F"
+          secretKey: "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
+          bucket: actions-cache
+          use-fallback: false
+          key: test-saveOnFailure-true-${{ github.run_id }}-${{ github.sha }}
+          path: |
+            test-save-input
+          restore-keys: test-saveOnFailure-true-${{ github.run_id }}-${{ github.sha }}
+          saveOnFailure: "true"
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+      - name: Populate cached file locally, then fail
+        id: populate-cache-then-fail
+        shell: bash
+        run: |
+          cached_contents="${{ github.run_id }}-${{ github.run_attempt }}"
+          echo "::set-output name=cachedContents::$cached_contents"
+          echo "$cached_contents" > test-save-input
+          exit 1
+
+  test-save-input-true-assert:
+    name: Assertion test for saveOnFailure
+    needs: test-saveOnFailure-true-setup
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Restore cache
+        uses: ./
+        with:
+          endpoint: play.min.io
+          accessKey: "Q3AM3UQ867SPQQA43P2F"
+          secretKey: "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
+          bucket: actions-cache
+          use-fallback: false
+          key: test-saveOnFailure-true-${{ github.run_id }}-${{ github.sha }}
+          path: |
+            test-save-input
+          restore-keys: test-saveOnFailure-true-${{ github.run_id }}-${{ github.sha }}
+      - name: Assert cache was not saved in setup job
+        shell: bash
+        run: |
+          if [ -f test-save-input ]; then
+            expected_contents="${{ needs.test-saveOnFailure-true-setup.outputs.cachedContents }}"
+            if ! grep -Fq "$expected_contents" test-save-input; then
+              echo "Contents of file \"test-save-input\": $(cat test-save-input)"
+              echo "Expected contents: $expected_contents"
+              echo "Test failed!"
+              exit 1
+            fi
+          else
+            echo 'File "test-save-input" should exist, test failed!'
+            exit 1
+          fi
+
