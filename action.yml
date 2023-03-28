@@ -6,6 +6,9 @@ inputs:
     description: "s3 / minio endpoint, see: https://docs.min.io/docs/javascript-client-api-reference.html"
     required: false
     default: s3.amazonaws.com
+  region:
+    description: "AWS region"
+    required: false
   port:
     description: minio port
     required: false
@@ -18,6 +21,9 @@ inputs:
   secretKey:
     description: s3 / minio secretKey
     required: true
+  sessionToken:
+    description: s3 session token - required when using role
+    required: false
   bucket:
     description: s3 / minio bucket
     required: true
@@ -44,7 +50,7 @@ inputs:
   #   default: -n
 outputs:
   cache-hit:
-    description: 'A boolean value to indicate an exact match was found for the primary key'
+    description: "A boolean value to indicate an exact match was found for the primary key"
 runs:
   using: node16
   main: "dist/restore/index.js"
